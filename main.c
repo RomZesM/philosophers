@@ -46,11 +46,11 @@ int main()
 	pthread_mutex_init(&vid1, NULL); //инициализируем мьютексы для использования
 	pthread_mutex_init(&vid2, NULL);
 
-	pthread_create(&phyl1, NULL, eat, (void *)&nm1);
+	pthread_create(&phyl1, NULL, eat, (void *)&nm1);//создаем сам поток
 	pthread_create(&phyl2, NULL, eat, (void *)&nm2);
 	//pthread_detach(phyl2);
 	//pthread_detach(phyl1);
-	pthread_mutex_init(&vid1, NULL);
+	pthread_mutex_init(&vid1, NULL); //??? зачем нужна вторая инициация мютексов?
 	pthread_mutex_init(&vid2, NULL);
 
 	pthread_join(phyl1, NULL); //дожидаемся завершения выполнения потока
