@@ -13,7 +13,7 @@
 
 #include "philo.h"
 
-unsigned long    get_time_in_ms(void) //функция получения текущего времени in ms (dan)
+unsigned long    ft_get_time_in_ms(void) //функция получения текущего времени in ms (dan)
 {
 	struct timeval  cur_time; //структура куда gettimeofday записывает данные о времени
 
@@ -22,6 +22,14 @@ unsigned long    get_time_in_ms(void) //функция получения тек
 	return (cur_time.tv_sec * 1000 + cur_time.tv_usec / 1000); //секунды на 1000 = миллисек., микросекунды наоборот увеличиваем.
 }
 
+void ft_mod_usleep(int sleep_time)//модифицирвоанная функция ожидания вместо usleep, чтобы не прерывылась случайным сигналом
+{								//получаем время в миллисекундах, сколько надо подождать.
+	unsigned long int i;
+
+	i = ft_get_time_in_ms();
+	while (ft_get_time_in_ms() < i + sleep_time)
+		usleep(50); //ждем по 50 микросекунд
+}
 
 int main(int argc, char * argv[])
 {
