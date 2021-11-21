@@ -13,10 +13,20 @@
 
 #include "philo.h"
 
+unsigned long    get_time_in_ms(void) //функция получения текущего времени in ms (dan)
+{
+	struct timeval  cur_time; //структура куда gettimeofday записывает данные о времени
+
+	gettimeofday(&cur_time, NULL); //0-удачно, 1 ошибка
+
+	return (cur_time.tv_sec * 1000 + cur_time.tv_usec / 1000); //секунды на 1000 = миллисек., микросекунды наоборот увеличиваем.
+}
+
+
 int main(int argc, char * argv[])
 {
 	t_data data; //структура со стоартовыми параметрами в идеале надо инициализировать NULL и выделить память
-	if (argc == 5)
+	if (argc == 5)//тут добавть защиту ввоода
 	{
 		data.num_of_phyl = atoi(argv[1]);
 		data.time_to_die = atoi(argv[2]);
