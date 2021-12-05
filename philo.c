@@ -14,19 +14,35 @@
 #include "philo.h"
 
 
+
+int ft_taking_forks(t_p_inf * inf)
+{
+	//берем минимальную вилку
+	pthread_mutex_lock(&inf->data->forks[ft_min_fork(inf)]);
+	pthread_mutex_lock(&inf->data->forks[ft_max_fork(inf)]);
+
+	return 0;
+}
+int ft_eating(t_p_inf * inf)
+{
+	printf("%ld Philosopher eat: %d, lf-%d, rf-%d\n", inf->data->start_time, inf->name, inf->left_fork, inf->right_fork);
+	ft_mod_usleep(inf->data->time_to_eat); //ждем время чтобы поесть
+	inf->last_eat = ft_get_time_in_ms();//время, когда закончил есть, для проверки не умер ли он от голода
+	printf("Last - eating - %ld\n", inf->last_eat);
+	return 0;
+}
 void * ft_simulation (void * arg)
 {
 	t_p_inf * inf;
 	inf = (t_p_inf *)arg;
-	pthread_mutex_lock(&inf->data->forks[inf->left_fork]);
-	pthread_mutex_lock(&inf->data->forks[inf->right_fork]);
+	ft_taking_forks(inf); //берем вилки (блокируем мютексы)
+	ft_eating(inf); //отдельная функция еды.
 
 
-		printf("Philosopher eat: %d, lf-%d, rf-%d\n", inf->name, inf->left_fork, inf->right_fork);
-		ft_mod_usleep(inf->data->time_to_eat); //ждем время чтобы поесть
 
-	pthread_mutex_unlock(&inf->data->forks[inf->right_fork]);
-	pthread_mutex_unlock(&inf->data->forks[inf->left_fork]);
+		
+	pthread_mutex_unlock(&inf->data->forks[ft_max_fork(inf)]);
+	pthread_mutex_unlock(&inf->data->forks[ft_min_fork(inf)]);
 	return (NULL);
 }
 
@@ -88,22 +104,24 @@ int ft_phyl_init_data(t_data * data)
 
 int ft_philosophers_init(t_data *data)
 {
-	//pthread_t *phylosophers;
 
-	data->phylosophers = malloc(sizeof(pthread_t) * data->num_of_phyl);
 	int i;
+	data->phylosophers = malloc(sizeof(pthread_t) * data->num_of_phyl);
+	if(!data->phylosophers)
+		exit(1);
 
 	i = 0;
 
 	while (i < data->num_of_phyl)
 	{
+		//запуск потоков, вместо функции пока что заглушка
 		pthread_create(&data->phylosophers[i], NULL, ft_simulation, &data->p_inf[i]);
 		i++;
 	}
 	return (0);
 }
 
-int ft_phil_thr_join(t_data *data)
+int ft_phil_thr_join(t_data *data) //звершение выполения потоков
 {
 	int i2;
 	i2 = 0;
@@ -114,6 +132,10 @@ int ft_phil_thr_join(t_data *data)
 	}
 
 	return (0);
+}
+void ft_start_time(t_data *data)
+{
+	data->start_time = ft_get_time_in_ms();
 }
 
 int main(int argc, char * argv[])
@@ -129,8 +151,9 @@ int main(int argc, char * argv[])
 	}
 	ft_phyl_init_data(&data);//иницализируем данные имя философов и номера вилок
 	ft_table_init(&data);//инициализируем массив мьютексов
+	ft_start_time(&data);//время начала симуляции
 	ft_philosophers_init(&data); //запускаем потоки
-	ft_phil_thr_join(&data);
+	ft_phil_thr_join(&data);//звершаем потоки
 	//usleep(10000);
 	return 0;
 }
