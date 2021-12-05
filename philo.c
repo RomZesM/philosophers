@@ -9,11 +9,34 @@
  * 5 - number_of_times_each_philosopher_must_eat - сколько раз должны философы поесть, чтобы завершить программу, иначе должна рабоать,
  * пока философ не умрет
  *
+ * timestamp N message
+ *
+ * timestamp N has taken a fork
+ * timestamp N is eating
+ * timestamp N is sleeping
+ * timestamp N is waiting
+ * timestamp N died
+ *
+ *#define KNRM  "\x1B[0m"
+#define KRED  "\x1B[31m"
+#define KGRN  "\x1B[32m"
+#define KYEL  "\x1B[33m"
+#define KBLU  "\x1B[34m"
+#define KMAG  "\x1B[35m"
+#define KCYN  "\x1B[36m"
+#define KWHT  "\x1B[37m"
+ *
  */
 
 #include "philo.h"
 
-
+int ft_print_message(t_p_inf * inf, unsigned long int time, char * msg)
+{
+	//чтобы не выводилось сообщение если кто то из философо умер ( нужна глобальная переменная), надо добавить проверку
+	printf("%ld %d %s", time, inf->name, msg);
+	//int time; // сюда надо посчитать текущее время, - время начала запуска симуляции
+	return (0);
+};
 
 int ft_taking_forks(t_p_inf * inf)
 {
@@ -25,24 +48,56 @@ int ft_taking_forks(t_p_inf * inf)
 }
 int ft_eating(t_p_inf * inf)
 {
-	printf("%ld Philosopher eat: %d, lf-%d, rf-%d\n", inf->data->start_time, inf->name, inf->left_fork, inf->right_fork);
+	unsigned long time;
+	time = ft_get_time_in_ms() - inf->data->start_time;
+	ft_print_message(inf, time, "\033[32m is eating\033[0m\n" );
+	//printf("%ld Philosopher %s: %d, lf-%d, rf-%d\n",  inf->data->start_time, "\033[32m is eating\033[0m\n",inf->name, inf->left_fork, inf->right_fork);
 	ft_mod_usleep(inf->data->time_to_eat); //ждем время чтобы поесть
 	inf->last_eat = ft_get_time_in_ms();//время, когда закончил есть, для проверки не умер ли он от голода
-	printf("Last - eating - %ld\n", inf->last_eat);
+	//printf("Last - eating - %ld\n", inf->last_eat);
 	return 0;
 }
+
+int ft_thinking(t_p_inf * inf)
+{
+
+	unsigned long time;
+	time = ft_get_time_in_ms() - inf->data->start_time;
+	ft_print_message(inf, time, "\033[35m is thinking\033[0m\n" );
+	ft_mod_usleep(inf->data->time_to_sleep); //ждем время чтобы поесть
+
+	return 0;
+}
+
+int ft_waiting(t_p_inf * inf)
+{
+	unsigned long time;
+	time = ft_get_time_in_ms() - inf->data->start_time;
+	ft_print_message(inf, time, "\033[34m is waiting\033[0m\n" );
+	ft_mod_usleep(inf->data->time_to_sleep); //ждем время чтобы поесть
+
+	return 0;
+}
+
 void * ft_simulation (void * arg)
 {
+	int i = 0;//!удалить потом
+
 	t_p_inf * inf;
 	inf = (t_p_inf *)arg;
-	ft_taking_forks(inf); //берем вилки (блокируем мютексы)
-	ft_eating(inf); //отдельная функция еды.
+	while(i < 10)
+	{
+		ft_taking_forks(inf); //берем вилки (блокируем мютексы)
 
+		ft_eating(inf); //отдельная функция еды.
+		ft_thinking(inf);//думает после еды, пока заглушка без проверок
+		ft_waiting(inf);
 
+		pthread_mutex_unlock(&inf->data->forks[ft_max_fork(inf)]);
+		pthread_mutex_unlock(&inf->data->forks[ft_min_fork(inf)]);
+		i++;
+	}
 
-		
-	pthread_mutex_unlock(&inf->data->forks[ft_max_fork(inf)]);
-	pthread_mutex_unlock(&inf->data->forks[ft_min_fork(inf)]);
 	return (NULL);
 }
 
@@ -133,7 +188,7 @@ int ft_phil_thr_join(t_data *data) //звершение выполения по�
 
 	return (0);
 }
-void ft_start_time(t_data *data)
+void ft_start_time(t_data *data)//запоминаем время начала симуляции
 {
 	data->start_time = ft_get_time_in_ms();
 }

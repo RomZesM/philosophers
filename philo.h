@@ -46,5 +46,10 @@ int				ft_phil_thr_join(t_data *data);
 int				ft_philosophers_init(t_data *data);
 int				ft_max_fork(t_p_inf * inf);
 int 			ft_min_fork(t_p_inf * inf);
+int				ft_taking_forks(t_p_inf * inf);
+int				ft_eating(t_p_inf * inf);
+int				ft_print_message(t_p_inf * inf, unsigned long int time, char * msg);
+int				ft_thinking(t_p_inf * inf);
+int				ft_waiting(t_p_inf * inf);
 
 #endif //PHILOSOFERS_PHILO_H
