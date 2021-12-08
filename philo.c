@@ -79,13 +79,43 @@ int ft_waiting(t_p_inf * inf)
 	return 0;
 }
 
+void * ft_d_check(void * arg)//добавить захват мютекса для проверки, чтобы в это время филосов не ел
+{
+	t_data * data;
+	int i;
+	int stop;
+	data = (t_data *)arg;//передаем потоку общую структуру данных
+	stop = 0;
+	while (stop == 0)//нужен цикл который постоянно проверяет не умер ли кто то.
+	{
+		i = 0;
+		while(i < data->num_of_phyl)
+		{
+			if(data->p_inf[i].dead_flag != 1)//если философ живой
+			{
+				printf("%ld %ld %ld\n", ft_get_time_in_ms(), data->p_inf[i].last_eat, data->time_to_die);
+				if(data->p_inf[i].last_eat == 0 || ft_get_time_in_ms() - data->p_inf[i].last_eat <= data->time_to_die)
+					printf("%d is alive, stop - %d\n", data->p_inf[i].name, stop);
+				else
+					printf("SOMEONE IS DEAD!!!\n");
+					stop = 1;
+					//exit(1);
+			}
+			i++;
+		}
+	}
+
+	return (NULL);
+}
+
 void * ft_simulation (void * arg)
 {
 	int i = 0;//!удалить потом
 
 	t_p_inf * inf;
 	inf = (t_p_inf *)arg;
-	while(i < 10)
+
+	while (i < 5)
 	{
 		ft_taking_forks(inf); //берем вилки (блокируем мютексы)
 
@@ -110,13 +140,16 @@ unsigned long    ft_get_time_in_ms(void) //функция получения т�
 	return (cur_time.tv_sec * 1000 + cur_time.tv_usec / 1000); //секунды на 1000 = миллисек., микросекунды наоборот увеличиваем.
 }
 
-void ft_mod_usleep(int sleep_time)//модифицирвоанная функция ожидания вместо usleep, чтобы не прерывылась случайным сигналом
+void ft_mod_usleep(int sleep_time)//модифицированная функция ожидания вместо usleep, чтобы не прерывылась случайным сигналом
 {								//получаем время в миллисекундах, сколько надо подождать.
 	unsigned long int i;
 
 	i = ft_get_time_in_ms();
 	while (ft_get_time_in_ms() < i + sleep_time)
-		usleep(50); //ждем по 50 микросекунд
+		{
+			usleep(50); //ждем по 50 микросекунд
+		}
+	//return (0);
 }
 
 int ft_table_init(t_data * data)//инициализируем массив вилок
@@ -143,6 +176,7 @@ int ft_phyl_init_data(t_data * data)
 	while (i < data->num_of_phyl)
 	{
 		data->p_inf[i].data = data;
+		data->p_inf[i].dead_flag = 0;
 		data->p_inf[i].name = i;
 		data->p_inf[i].left_fork = i;
 		if (i == data->num_of_phyl - 1)
@@ -160,11 +194,13 @@ int ft_phyl_init_data(t_data * data)
 int ft_philosophers_init(t_data *data)
 {
 
+	pthread_t death_check; //поток  для проверки смерти философа
 	int i;
 	data->phylosophers = malloc(sizeof(pthread_t) * data->num_of_phyl);
 	if(!data->phylosophers)
 		exit(1);
 
+	pthread_create(&death_check, NULL, ft_d_check, data); //запуск потока для проверки философов на смерть
 	i = 0;
 
 	while (i < data->num_of_phyl)
@@ -173,6 +209,7 @@ int ft_philosophers_init(t_data *data)
 		pthread_create(&data->phylosophers[i], NULL, ft_simulation, &data->p_inf[i]);
 		i++;
 	}
+	pthread_join(death_check, NULL);
 	return (0);
 }
 

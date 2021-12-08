@@ -15,7 +15,7 @@ struct s_p_inf;
 typedef struct s_data //сюда кладем стартовые данные
 {
 	int num_of_phyl;
-	int time_to_die;
+	unsigned long time_to_die;
 	int time_to_eat;
 	int time_to_sleep;
 	int number_of_times;//сколько раз поел
@@ -34,7 +34,7 @@ typedef struct s_p_inf
 	t_data * data;
 	unsigned long last_eat;//время когда поел, для проверки смерти
 	pthread_mutex_t eat_now; //мютекс для блокирование ф. на время еды
-
+	int dead_flag; //флаг для проверки на смерть
 }t_p_inf;
 
 
@@ -51,5 +51,7 @@ int				ft_eating(t_p_inf * inf);
 int				ft_print_message(t_p_inf * inf, unsigned long int time, char * msg);
 int				ft_thinking(t_p_inf * inf);
 int				ft_waiting(t_p_inf * inf);
+void * 			ft_d_check(void * arg);//для потока, проверяющего смерть ф.
+void * 			ft_simulation (void * arg);
 
 #endif //PHILOSOFERS_PHILO_H
