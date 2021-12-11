@@ -23,7 +23,7 @@ typedef struct s_data //сюда кладем стартовые данные
 	pthread_mutex_t * forks; //указатель для хранения всех вилок = кол-во философов
 	pthread_t *phylosophers;
 	unsigned long start_time;//время запуска философоф
-
+	int flag_dead_ms; //глоб флаг смерти
 }t_data;
 
 typedef struct s_p_inf
@@ -54,4 +54,4 @@ int				ft_waiting(t_p_inf * inf);
 void * 			ft_d_check(void * arg);//для потока, проверяющего смерть ф.
 void * 			ft_simulation (void * arg);
 
-#endif //PHILOSOFERS_PHILO_H
+#endif //PHILO_H

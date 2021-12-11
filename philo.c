@@ -33,9 +33,13 @@
 int ft_print_message(t_p_inf * inf, unsigned long int time, char * msg)
 {
 	//чтобы не выводилось сообщение если кто то из философо умер ( нужна глобальная переменная), надо добавить проверку
-	printf("%ld %d %s", time, inf->name, msg);
+	//if(inf->)
+	if (inf->data->flag_dead_ms == 0) {
+		printf("%ld %d %s", time, inf->name, msg);
+		return (0);
+	}
 	//int time; // сюда надо посчитать текущее время, - время начала запуска симуляции
-	return (0);
+	return (1);
 };
 
 int ft_taking_forks(t_p_inf * inf)
@@ -64,16 +68,14 @@ int ft_thinking(t_p_inf * inf)
 	unsigned long time;
 	time = ft_get_time_in_ms() - inf->data->start_time;
 	ft_print_message(inf, time, "\033[35m is thinking\033[0m\n" );
-	ft_mod_usleep(inf->data->time_to_sleep); //ждем время чтобы поесть
-
 	return 0;
 }
 
-int ft_waiting(t_p_inf * inf)
+int ft_sleeping(t_p_inf * inf)
 {
 	unsigned long time;
 	time = ft_get_time_in_ms() - inf->data->start_time;
-	ft_print_message(inf, time, "\033[34m is waiting\033[0m\n" );
+	ft_print_message(inf, time, "\033[34m is sleeping\033[0m\n" );
 	ft_mod_usleep(inf->data->time_to_sleep); //ждем время чтобы поесть
 
 	return 0;
@@ -82,27 +84,25 @@ int ft_waiting(t_p_inf * inf)
 void * ft_d_check(void * arg)//добавить захват мютекса для проверки, чтобы в это время филосов не ел
 {
 	t_data * data;
+	unsigned long time;
 	int i;
-	int stop;
 	data = (t_data *)arg;//передаем потоку общую структуру данных
-	stop = 0;
-	while (stop == 0)//нужен цикл который постоянно проверяет не умер ли кто то.
+
+	while (data->flag_dead_ms != 1)//нужен цикл который постоянно проверяет не умер ли кто то.
 	{
 		i = 0;
 		while(i < data->num_of_phyl)
 		{
-			if(data->p_inf[i].dead_flag != 1)//если философ живой
+			time = ft_get_time_in_ms() - data->start_time;
+			if(data->p_inf[i].last_eat != 0 && ft_get_time_in_ms() - data->p_inf[i].last_eat > data->time_to_die)
 			{
-				printf("%ld %ld %ld\n", ft_get_time_in_ms(), data->p_inf[i].last_eat, data->time_to_die);
-				if(data->p_inf[i].last_eat == 0 || ft_get_time_in_ms() - data->p_inf[i].last_eat <= data->time_to_die)
-					printf("%d is alive, stop - %d\n", data->p_inf[i].name, stop);
-				else
-					printf("SOMEONE IS DEAD!!!\n");
-					stop = 1;
-					//exit(1);
+				ft_print_message(&data->p_inf[i], time, "is dead\n");
+				data->flag_dead_ms = 1;
 			}
 			i++;
 		}
+		ft_mod_usleep(50);
+
 	}
 
 	return (NULL);
@@ -110,22 +110,24 @@ void * ft_d_check(void * arg)//добавить захват мютекса дл
 
 void * ft_simulation (void * arg)
 {
-	int i = 0;//!удалить потом
+	//int i = 0;//!удалить потом
 
 	t_p_inf * inf;
 	inf = (t_p_inf *)arg;
 
-	while (i < 5)
+	while (inf->data->flag_dead_ms != 1)
 	{
 		ft_taking_forks(inf); //берем вилки (блокируем мютексы)
 
 		ft_eating(inf); //отдельная функция еды.
-		ft_thinking(inf);//думает после еды, пока заглушка без проверок
-		ft_waiting(inf);
+
+
 
 		pthread_mutex_unlock(&inf->data->forks[ft_max_fork(inf)]);
 		pthread_mutex_unlock(&inf->data->forks[ft_min_fork(inf)]);
-		i++;
+		ft_sleeping(inf);
+		ft_thinking(inf);//думает после еды, пока заглушка без проверок
+		//i++;
 	}
 
 	return (NULL);
@@ -186,7 +188,23 @@ int ft_phyl_init_data(t_data * data)
 		else
 			data->p_inf[i].right_fork = i + 1;
 		printf("name - %d, left_fork - %d, right_fork - %d\n", data->p_inf[i].name, data->p_inf[i].left_fork, data->p_inf[i].right_fork);
-		i++;
+		i+=2;
+	}
+	i = 1;
+	while (i < data->num_of_phyl)
+	{
+		data->p_inf[i].data = data;
+		data->p_inf[i].dead_flag = 0;
+		data->p_inf[i].name = i;
+		data->p_inf[i].left_fork = i;
+		if (i == data->num_of_phyl - 1)
+		{
+			data->p_inf[i].right_fork = 0;
+		}
+		else
+			data->p_inf[i].right_fork = i + 1;
+		printf("name - %d, left_fork - %d, right_fork - %d\n", data->p_inf[i].name, data->p_inf[i].left_fork, data->p_inf[i].right_fork);
+		i+=2;
 	}
 	return (0);
 }
@@ -240,6 +258,7 @@ int main(int argc, char * argv[])
 		data.time_to_eat = atoi(argv[3]);
 		data.time_to_sleep = atoi(argv[4]);
 		data.phylosophers = NULL;
+		data.flag_dead_ms = 0;
 	}
 	ft_phyl_init_data(&data);//иницализируем данные имя философов и номера вилок
 	ft_table_init(&data);//инициализируем массив мьютексов
