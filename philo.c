@@ -35,7 +35,7 @@ int ft_print_message(t_p_inf * inf, unsigned long int time, char * msg)
 	//чтобы не выводилось сообщение если кто то из философо умер ( нужна глобальная переменная), надо добавить проверку
 	//if(inf->)
 	if (inf->data->flag_dead_ms == 0) {
-		printf("%ld %d %s", time, inf->name, msg);
+		printf("%ld %d %s", time, inf->name + 1, msg);
 		return (0);
 	}
 	//int time; // сюда надо посчитать текущее время, - время начала запуска симуляции
@@ -127,6 +127,7 @@ void * ft_simulation (void * arg)
 		pthread_mutex_unlock(&inf->data->forks[ft_min_fork(inf)]);
 		ft_sleeping(inf);
 		ft_thinking(inf);//думает после еды, пока заглушка без проверок
+		ft_mod_usleep(100);//? усыпить философоа после выполнения цикла, чтобы не поел 2 раза подряд
 		//i++;
 	}
 
@@ -142,7 +143,7 @@ unsigned long    ft_get_time_in_ms(void) //функция получения т�
 	return (cur_time.tv_sec * 1000 + cur_time.tv_usec / 1000); //секунды на 1000 = миллисек., микросекунды наоборот увеличиваем.
 }
 
-void ft_mod_usleep(int sleep_time)//модифицированная функция ожидания вместо usleep, чтобы не прерывылась случайным сигналом
+int ft_mod_usleep(int sleep_time)//модифицированная функция ожидания вместо usleep, чтобы не прерывылась случайным сигналом
 {								//получаем время в миллисекундах, сколько надо подождать.
 	unsigned long int i;
 
@@ -151,7 +152,7 @@ void ft_mod_usleep(int sleep_time)//модифицированная функц�
 		{
 			usleep(50); //ждем по 50 микросекунд
 		}
-	//return (0);
+	return (0);
 }
 
 int ft_table_init(t_data * data)//инициализируем массив вилок
@@ -188,24 +189,9 @@ int ft_phyl_init_data(t_data * data)
 		else
 			data->p_inf[i].right_fork = i + 1;
 		printf("name - %d, left_fork - %d, right_fork - %d\n", data->p_inf[i].name, data->p_inf[i].left_fork, data->p_inf[i].right_fork);
-		i+=2;
+		i++;
 	}
-	i = 1;
-	while (i < data->num_of_phyl)
-	{
-		data->p_inf[i].data = data;
-		data->p_inf[i].dead_flag = 0;
-		data->p_inf[i].name = i;
-		data->p_inf[i].left_fork = i;
-		if (i == data->num_of_phyl - 1)
-		{
-			data->p_inf[i].right_fork = 0;
-		}
-		else
-			data->p_inf[i].right_fork = i + 1;
-		printf("name - %d, left_fork - %d, right_fork - %d\n", data->p_inf[i].name, data->p_inf[i].left_fork, data->p_inf[i].right_fork);
-		i+=2;
-	}
+
 	return (0);
 }
 
@@ -225,8 +211,18 @@ int ft_philosophers_init(t_data *data)
 	{
 		//запуск потоков, вместо функции пока что заглушка
 		pthread_create(&data->phylosophers[i], NULL, ft_simulation, &data->p_inf[i]);
-		i++;
+		i+=2;
 	}
+	ft_mod_usleep(data->time_to_eat);//ждем между запуском второй волны философоф чтобы первые поели
+	i = 1;
+
+	while (i < data->num_of_phyl)
+	{
+		//запуск потоков, вместо функции пока что заглушка
+		pthread_create(&data->phylosophers[i], NULL, ft_simulation, &data->p_inf[i]);
+		i+=2;
+	}
+
 	pthread_join(death_check, NULL);
 	return (0);
 }

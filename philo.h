@@ -39,7 +39,7 @@ typedef struct s_p_inf
 
 
 unsigned long	ft_get_time_in_ms(void);
-void			ft_mod_usleep(int sleep_time);
+int 			ft_mod_usleep(int sleep_time);
 int				ft_table_init(t_data * data);
 int				ft_phyl_init_data(t_data * data);
 int				ft_phil_thr_join(t_data *data);
