@@ -33,6 +33,8 @@ typedef struct s_p_inf
 	int right_fork;//используется как индекс для доступа к массиву мьютексов
 	t_data * data;
 	unsigned long last_eat;//время когда поел, для проверки смерти
+	int eating_count;//считаем сколько раз поел
+
 	pthread_mutex_t eat_now; //мютекс для блокирование ф. на время еды
 	int dead_flag; //флаг для проверки на смерть
 }t_p_inf;
