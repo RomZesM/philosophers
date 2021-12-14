@@ -33,7 +33,7 @@
 int ft_print_message(t_p_inf * inf, unsigned long int time, char * msg)
 {
 	//printf("%d %ld %ld\n", inf->data->flag_dead_ms, inf->last_eat, ft_get_time_in_ms() - inf->last_eat);//
-	if (inf->data->flag_dead_ms != 1 && ft_get_time_in_ms() - inf->last_eat <= inf->data->time_to_die)//проверка на флаг, и текущее вычисление жив ли философ, чтобы не
+	if (ft_get_time_in_ms() - inf->last_eat <= inf->data->time_to_die && inf->data->flag_dead_ms != 1)//проверка на флаг, и текущее вычисление жив ли философ, чтобы не
 												//отправлять сообщение после смерти философа
 	{
 		printf("%ld %d %s", time, inf->name + 1, msg);
@@ -51,17 +51,18 @@ int ft_taking_forks(t_p_inf * inf)
 	time = ft_get_time_in_ms() - inf->data->start_time;
 	//printf("%d - time after last eating - %ld, eat count - %d\n", inf->name, ft_get_time_in_ms() - inf->last_eat, inf->eating_count);
 	pthread_mutex_lock(&inf->data->forks[ft_min_fork(inf)]);
-	if(ft_print_message(inf, time, "\033[32m is taking fork\033[0m\n") == 1)
+	if (ft_print_message(inf, time, "\033[32m is taking fork\033[0m\n") == 1)
 		{
 
 			pthread_mutex_unlock(&inf->data->forks[ft_min_fork(inf)]);//если философ умер, разблокируем min_fork и выходим из ф.
 			return (1);
 		}
+		//pthread_mutex_lock(&inf->data->forks[ft_max_fork(inf)]);
 	if(pthread_mutex_lock(&inf->data->forks[ft_max_fork(inf)]) != 0) //если не вернул 0 значит вилка занята, кладем младшую, и выходим
 		{
-
-		pthread_mutex_unlock(&inf->data->forks[ft_min_fork(inf)]);
-			return (1);
+			printf ("NO RIGHT FORK!!!!!!\n");
+			//pthread_mutex_unlock(&inf->data->forks[ft_min_fork(inf)]);
+			//return (1);
 		}
 	time = ft_get_time_in_ms() - inf->data->start_time;
 	if (ft_print_message(inf, time, "\033[32m is taking BOTH fork\033[0m\n") == 1 )
@@ -71,6 +72,7 @@ int ft_taking_forks(t_p_inf * inf)
 			pthread_mutex_unlock(&inf->data->forks[ft_max_fork(inf)]);
 			return (1);
 		}
+
 	return 0;
 }
 int ft_eating(t_p_inf * inf)
@@ -88,6 +90,7 @@ int ft_eating(t_p_inf * inf)
 		//printf("%ld Philosopher %s: %d, lf-%d, rf-%d\n",  inf->data->start_time, "\033[32m is eating\033[0m\n",inf->name, inf->left_fork, inf->right_fork);
 	ft_mod_usleep(inf->data->time_to_eat); //ждем время чтобы поесть
 	inf->eating_count++;
+	inf->last_eat = ft_get_time_in_ms();//время, когда поел последний раз
 	pthread_mutex_unlock(&inf->data->forks[ft_max_fork(inf)]);
 	pthread_mutex_unlock(&inf->data->forks[ft_min_fork(inf)]);
 	//printf("Last - eating - %ld\n", inf->last_eat);
@@ -105,11 +108,16 @@ int ft_thinking(t_p_inf * inf)
 
 int ft_sleeping(t_p_inf * inf)
 {
+	unsigned long temp1;
+	unsigned long temp2;
+
 	unsigned long time;
 	time = ft_get_time_in_ms() - inf->data->start_time;
 	ft_print_message(inf, time, "\033[34m is sleeping\033[0m\n" );
+	temp1 = ft_get_time_in_ms();
 	ft_mod_usleep(inf->data->time_to_sleep); //ждем время чтобы поесть
-
+	temp2 = ft_get_time_in_ms();
+	printf("REAL PAUSE - %ld\n", temp2 - temp1);
 	return 0;
 }
 
@@ -135,10 +143,9 @@ void * ft_d_check(void * arg)//добавить захват мютекса дл
 			}
 			i++;
 		}
-		ft_mod_usleep(2);
+		ft_mod_usleep(1);
 
 	}
-
 	return (NULL);
 }
 
@@ -167,7 +174,7 @@ void * ft_simulation (void * arg)
 			}
 		if(ft_eating(inf) != 0) //отдельная функция еды.
 			{
-			printf("ZXXXXXXXXXXXXXXXX\n");
+			printf("XXXXXXXXXXXXXXXX\n");
 			break;
 			}
 
@@ -196,7 +203,8 @@ int ft_mod_usleep(int sleep_time)//модифицированная функци
 	i = ft_get_time_in_ms();
 	while (ft_get_time_in_ms() < i + sleep_time)
 		{
-			usleep(50); //ждем по 50 микросекунд
+
+			usleep(500); //ждем по 50 микросекунд
 		}
 	return (0);
 }
@@ -259,12 +267,10 @@ int ft_philosophers_init(t_data *data)
 	{
 		//запуск потоков, вместо функции пока что заглушка
 		pthread_create(&data->phylosophers[i], NULL, ft_simulation, &data->p_inf[i]);
-		ft_mod_usleep(1);
 		i+=2;
 	}
-	ft_mod_usleep(data->time_to_eat / 2);//ждем между запуском второй волны философоф чтобы первые поели
+	ft_mod_usleep(data->time_to_eat);//ждем между запуском второй волны философоф чтобы первые поели
 	i = 1;
-
 	while (i < data->num_of_phyl)
 	{
 		//запуск потоков, вместо функции пока что заглушка
