@@ -48,10 +48,10 @@ int ft_taking_forks(t_p_inf * inf)
 	//берем минимальную вилку
 	unsigned long time;
 
-	time = ft_get_time_in_ms() - inf->data->start_time;
 	//printf("%d - time after last eating - %ld, eat count - %d\n", inf->name, ft_get_time_in_ms() - inf->last_eat, inf->eating_count);
 	pthread_mutex_lock(&inf->data->forks[ft_min_fork(inf)]);
-	if (ft_print_message(inf, time, "\033[32m is taking fork\033[0m\n") == 1)
+	time = ft_get_time_in_ms() - inf->data->start_time;//берем время после захвата мютекса
+	if (ft_print_message(inf, time, "\033[32m is taking fork\033[0m\n") == 1 || inf->left_fork == inf->right_fork)
 		{
 
 			pthread_mutex_unlock(&inf->data->forks[ft_min_fork(inf)]);//если философ умер, разблокируем min_fork и выходим из ф.
@@ -62,10 +62,10 @@ int ft_taking_forks(t_p_inf * inf)
 		{
 			printf ("NO RIGHT FORK!!!!!!\n");
 			//pthread_mutex_unlock(&inf->data->forks[ft_min_fork(inf)]);
-			//return (1);
+			return (1);
 		}
 	time = ft_get_time_in_ms() - inf->data->start_time;
-	if (ft_print_message(inf, time, "\033[32m is taking BOTH fork\033[0m\n") == 1 )
+	if (ft_print_message(inf, time, "\033[32m is taking BOTH fork\033[0m\n") == 1)
 		{
 
 			pthread_mutex_unlock(&inf->data->forks[ft_min_fork(inf)]);//если философ умер, разблокируем обе вилки и выходим из ф.
@@ -80,7 +80,7 @@ int ft_eating(t_p_inf * inf)
 	unsigned long time;
 
 	time = ft_get_time_in_ms() - inf->data->start_time;
-	inf->last_eat = ft_get_time_in_ms();//время, когда поел последний раз
+	//inf->last_eat = ft_get_time_in_ms();//время, когда поел последний раз
 	if (ft_print_message(inf, time, "\033[32m is eating\033[0m\n") == 1) //проверяем не умер ли философ, и только тогда выводим сообщение
 		{
 			pthread_mutex_unlock(&inf->data->forks[ft_max_fork(inf)]);
@@ -88,9 +88,10 @@ int ft_eating(t_p_inf * inf)
 			return (1);
 		}
 		//printf("%ld Philosopher %s: %d, lf-%d, rf-%d\n",  inf->data->start_time, "\033[32m is eating\033[0m\n",inf->name, inf->left_fork, inf->right_fork);
-	ft_mod_usleep(inf->data->time_to_eat); //ждем время чтобы поесть
+
 	inf->eating_count++;
 	inf->last_eat = ft_get_time_in_ms();//время, когда поел последний раз
+	ft_mod_usleep(inf->data->time_to_eat); //ждем время чтобы поесть
 	pthread_mutex_unlock(&inf->data->forks[ft_max_fork(inf)]);
 	pthread_mutex_unlock(&inf->data->forks[ft_min_fork(inf)]);
 	//printf("Last - eating - %ld\n", inf->last_eat);
@@ -108,16 +109,12 @@ int ft_thinking(t_p_inf * inf)
 
 int ft_sleeping(t_p_inf * inf)
 {
-	unsigned long temp1;
-	unsigned long temp2;
 
 	unsigned long time;
 	time = ft_get_time_in_ms() - inf->data->start_time;
 	ft_print_message(inf, time, "\033[34m is sleeping\033[0m\n" );
-	temp1 = ft_get_time_in_ms();
+
 	ft_mod_usleep(inf->data->time_to_sleep); //ждем время чтобы поесть
-	temp2 = ft_get_time_in_ms();
-	printf("REAL PAUSE - %ld\n", temp2 - temp1);
 	return 0;
 }
 
@@ -138,14 +135,16 @@ void * ft_d_check(void * arg)//добавить захват мютекса дл
 			{
 				printf("Before dead %d - time after LE - %ld, eat count - %d\n", data->p_inf[i].name, ft_get_time_in_ms() - data->p_inf[i].last_eat, data->p_inf[i].eating_count);
 				printf("++++++++++++++++++DEAD++++++++++++++++\n");
-				//ft_print_message(&data->p_inf[i], time, "is dead\n");
+				ft_print_message(&data->p_inf[i], time, "is dead\n");
 				data->flag_dead_ms = 1;
 			}
 			i++;
+
 		}
 		ft_mod_usleep(1);
 
 	}
+
 	return (NULL);
 }
 
@@ -157,16 +156,7 @@ void * ft_simulation (void * arg)
 
 	while (inf->data->flag_dead_ms != 1)
 	{
-	//	printf("AAAAAAAAAAAAAA");
-//		printf("-------%d\n", ft_taking_forks(inf));
-
-//		printf("Before forks - %d - time after last eating - %ld, eat count - %d\n", inf->name, ft_get_time_in_ms() - inf->last_eat, inf->eating_count);
-//		printf("****************** %ld *****************\n", (inf->data->time_to_die / 5) * 3);
-//		if(ft_get_time_in_ms() - inf->last_eat < ((inf->data->time_to_die / 5) * 3))
-//			{
-//			ft_mod_usleep(1);
-//			break;
-//			}
+		printf("------4-------\n");
 		if(ft_taking_forks(inf) != 0)//берем вилки (блокируем мютексы)
 			{
 				printf("ZZZZZZZZZZZZZZZ\n");
@@ -183,7 +173,7 @@ void * ft_simulation (void * arg)
 		ft_mod_usleep(1);//? усыпить философа после выполнения цикла, чтобы не поел 2 раза подряд
 		//i++;
 	}
-
+	printf("------4-------\n");
 	return (NULL);
 }
 
@@ -254,13 +244,13 @@ int ft_phyl_init_data(t_data * data)
 int ft_philosophers_init(t_data *data)
 {
 
-	pthread_t death_check; //поток  для проверки смерти философа
+//	pthread_t death_check; //поток  для проверки смерти философа
 	int i;
 	data->phylosophers = malloc(sizeof(pthread_t) * data->num_of_phyl);
 	if(!data->phylosophers)
 		exit(1);
 
-	pthread_create(&death_check, NULL, ft_d_check, data); //запуск потока для проверки философов на смерть
+	//pthread_create(&death_check, NULL, ft_d_check, data); //запуск потока для проверки философов на смерть
 	i = 0;
 
 	while (i < data->num_of_phyl)
@@ -278,7 +268,7 @@ int ft_philosophers_init(t_data *data)
 		i+=2;
 	}
 
-	pthread_join(death_check, NULL);
+	//pthread_join(death_check, NULL);
 	return (0);
 }
 
@@ -302,6 +292,7 @@ void ft_start_time(t_data *data)//запоминаем время начала �
 int main(int argc, char * argv[])
 {
 	t_data data; //структура со стартовыми параметрами в идеале надо инициализировать NULL и выделить память
+	pthread_t death_check;
 	if (argc == 5)//тут добавть защиту ввоода
 	{
 		data.num_of_phyl = atoi(argv[1]); //заменить атои на свою реализацию и в нее добавить защиту
@@ -313,9 +304,11 @@ int main(int argc, char * argv[])
 	}
 	ft_phyl_init_data(&data);//иницализируем данные имя философов и номера вилок
 	ft_table_init(&data);//инициализируем массив мьютексов
+	pthread_create(&death_check, NULL, ft_d_check, &data);
 	ft_start_time(&data);//время начала симуляции
 	ft_philosophers_init(&data); //запускаем потоки
 	ft_phil_thr_join(&data);//звершаем потоки
+	pthread_join(death_check, NULL);
 	printf("END OF PROGRAMM\n");
 	//usleep(10000);
 	return 0;
